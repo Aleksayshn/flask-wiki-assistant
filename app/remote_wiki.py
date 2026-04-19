@@ -8,6 +8,7 @@ execute `wiki.py` on a remote Ubuntu EC2 instance through Paramiko.
 from __future__ import annotations
 
 import os
+import re
 import shlex
 from typing import Dict
 
@@ -148,21 +149,46 @@ class RemoteWikiService:
         """
         Convert the remote script output into a dictionary for Flask.
 
-        The remote script prints labelled lines so parsing can stay simple and
-        easy to explain in an assignment report.
+        The remote script prints labelled lines in this format:
+        TITLE: ...
+        URL: ...
+        SUMMARY: ...
+
+        The parser is defensive because real remote command output can also
+        contain blank lines or warnings. Summary text may span multiple lines,
+        so once SUMMARY starts, additional related lines are appended until a
+        new recognised label appears.
         """
         parsed_data = {"TITLE": "", "URL": "", "SUMMARY": ""}
+        current_field = ""
 
-        for line in output_text.splitlines():
-            if ":" not in line:
+        # Only these labels are part of the supported structured format.
+        known_labels = {"TITLE", "URL", "SUMMARY"}
+
+        for raw_line in output_text.splitlines():
+            line = raw_line.strip()
+
+            # Empty lines do not contribute useful structured data.
+            if not line:
                 continue
 
-            key, value = line.split(":", 1)
-            key = key.strip().upper()
-            value = value.strip()
+            labelled_match = re.match(r"^(TITLE|URL|SUMMARY):\s*(.*)$", line, re.IGNORECASE)
+            if labelled_match:
+                current_field = labelled_match.group(1).upper()
+                parsed_data[current_field] = labelled_match.group(2).strip()
+                continue
 
-            if key in parsed_data:
-                parsed_data[key] = value
+            # Ignore unrelated warnings or noise before the structured output.
+            if self._is_unrelated_output(line, known_labels):
+                continue
+
+            # Support multi-line SUMMARY output by appending additional lines
+            # after the initial SUMMARY label.
+            if current_field == "SUMMARY":
+                if parsed_data["SUMMARY"]:
+                    parsed_data["SUMMARY"] = f"{parsed_data['SUMMARY']} {line}"
+                else:
+                    parsed_data["SUMMARY"] = line
 
         title = parsed_data["TITLE"]
         url = parsed_data["URL"]
@@ -183,6 +209,27 @@ class RemoteWikiService:
             raw_output=output_text,
             error="",
         )
+
+    def _is_unrelated_output(self, line: str, known_labels: set[str]) -> bool:
+        """
+        Detect warnings or unrelated output that should not break parsing.
+
+        This keeps the parser tolerant of SSH banners, Python warnings, or
+        third-party library messages that may appear around the real data.
+        """
+        upper_line = line.upper()
+
+        if upper_line.startswith(("WARNING:", "WARN:", "NOTICE:", "INFO:", "DEBUG:")):
+            return True
+
+        # If a line contains a colon but does not start with one of the known
+        # labels, treat it as unrelated output rather than structured data.
+        if ":" in line:
+            possible_label = line.split(":", 1)[0].strip().upper()
+            if possible_label not in known_labels:
+                return True
+
+        return False
 
     def _build_response(
         self,

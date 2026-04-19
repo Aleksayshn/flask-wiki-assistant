@@ -10,21 +10,15 @@
     <main class="page-shell">
         <section class="card">
             <h1>Search Result</h1>
-
-            {% if search_term %}
-                <p><strong>Search term:</strong> {{ search_term }}</p>
-            {% else %}
-                <p><strong>Search term:</strong> No term was supplied.</p>
-            {% endif %}
+            <p class="secondary-text">
+                The form was submitted successfully and the application is now
+                showing the required Task 1 result page.
+            </p>
+            <p><strong>Your search term:</strong> {{ search_term }}</p>
 
             <div class="result-box">
                 <p class="result-message">{{ message }}</p>
             </div>
-
-            <p class="secondary-text">
-                This starter page is ready for future MySQL caching and Paramiko
-                remote execution integration.
-            </p>
 
             <div class="actions">
                 <a href="{{ url_for('index') }}" class="button-link">Search Again</a>

@@ -7,6 +7,10 @@ __pycache__/
 
 # Virtual env
 venv/
+.venv/
 
 # OS
 .DS_Store
+
+# docs
+.codex

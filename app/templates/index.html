@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiki Assistant</title>
+    <title>Distributed Wiki Assistant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -11,8 +11,14 @@
         <section class="card">
             <h1>Distributed Wiki Assistant</h1>
             <p class="lead">
-                Enter a topic to begin a future distributed Wikipedia search.
+                This Flask web application is the starter interface for a
+                distributed search assignment. Enter a topic below to submit
+                a simple search request.
             </p>
+
+            {% if error_message %}
+                <p class="error-message">{{ error_message }}</p>
+            {% endif %}
 
             <form action="{{ url_for('search') }}" method="post" class="search-form">
                 <label for="search_term">Search Term</label>
@@ -20,8 +26,8 @@
                     type="text"
                     id="search_term"
                     name="search_term"
+                    value="{{ previous_term }}"
                     placeholder="e.g. Cloud Computing"
-                    required
                 >
                 <button type="submit">Search</button>
             </form>

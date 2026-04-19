@@ -41,12 +41,22 @@ body {
 h1 {
     margin-top: 0;
     margin-bottom: 12px;
+    font-size: 2rem;
 }
 
 .lead,
 .secondary-text {
     color: var(--muted);
     line-height: 1.6;
+}
+
+.error-message {
+    margin: 20px 0 0;
+    padding: 12px 14px;
+    border: 1px solid #e7b4b4;
+    border-radius: 12px;
+    background: #fff3f3;
+    color: #9e2f2f;
 }
 
 .search-form {

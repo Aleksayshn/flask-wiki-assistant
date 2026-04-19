@@ -1,9 +1,9 @@
 """
 Main Flask application entry point.
 
-This module creates the Flask application and defines the routes required
-for Task 1 of the assignment. The code is deliberately well-commented so
-that each part is easy to explain during marking or demonstration.
+This module creates the Flask application and defines the routes used in
+the assignment. The `/search` route now calls a remote EC2 instance through
+Paramiko to run the Wikipedia helper script.
 """
 
 from flask import Flask, render_template, request
@@ -24,9 +24,8 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # These service objects are placeholders for later assignment tasks.
-    # They are initialised here so the project structure already supports
-    # MySQL caching and remote execution when those features are added.
+    # The cache repository remains in place as a future extension point for
+    # the assignment, even though the current task focuses on remote lookup.
     cache_repository = CacheRepository(
         enabled=app.config["MYSQL_CACHE_ENABLED"],
         host=app.config["MYSQL_HOST"],
@@ -37,11 +36,11 @@ def create_app() -> Flask:
     )
     remote_wiki_service = RemoteWikiService(
         enabled=app.config["REMOTE_EXECUTION_ENABLED"],
-        host=app.config["REMOTE_HOST"],
-        port=app.config["REMOTE_PORT"],
-        username=app.config["REMOTE_USERNAME"],
-        password=app.config["REMOTE_PASSWORD"],
-        script_path=app.config["REMOTE_SCRIPT_PATH"],
+        host=app.config["EC2_HOST"],
+        port=app.config["EC2_PORT"],
+        username=app.config["EC2_USERNAME"],
+        key_path=app.config["EC2_KEY_PATH"],
+        script_path=app.config["EC2_WIKI_SCRIPT_PATH"],
     )
 
     @app.get("/")
@@ -56,11 +55,11 @@ def create_app() -> Flask:
     @app.post("/search")
     def search():
         """
-        Process the submitted search term from the home page form.
+        Process the submitted search term and request the result remotely.
 
-        For Task 1, the application does not perform a real search yet.
-        Instead, it validates the input and then shows the required
-        placeholder result: "I have no clue!"
+        The local Flask app validates the form input, then SSHs into the EC2
+        instance and runs `wiki.py` there. The returned plain-text output is
+        converted into a Python dictionary by `RemoteWikiService`.
         """
         search_term = request.form.get("search_term", "").strip()
 
@@ -73,15 +72,14 @@ def create_app() -> Flask:
                 previous_term="",
             ), 400
 
-        # Placeholder calls show where future caching and remote execution
-        # would be integrated. Their return values are not yet used in Task 1.
+        # This placeholder call keeps the project ready for future caching.
         cache_repository.get_cached_result(search_term)
-        remote_wiki_service.search(search_term)
+        wiki_result = remote_wiki_service.search(search_term)
 
         return render_template(
             "result.html",
             search_term=search_term,
-            message="I have no clue!",
+            wiki_result=wiki_result,
         )
 
     return app

@@ -40,8 +40,12 @@ class Config:
     REMOTE_EXECUTION_ENABLED = _to_bool(
         os.getenv("REMOTE_EXECUTION_ENABLED"), default=False
     )
-    REMOTE_HOST = os.getenv("REMOTE_HOST", "127.0.0.1")
-    REMOTE_PORT = int(os.getenv("REMOTE_PORT", "22"))
-    REMOTE_USERNAME = os.getenv("REMOTE_USERNAME", "student")
-    REMOTE_PASSWORD = os.getenv("REMOTE_PASSWORD", "change-me")
-    REMOTE_SCRIPT_PATH = os.getenv("REMOTE_SCRIPT_PATH", "/opt/wiki/scripts/wiki.py")
+
+    # Remote EC2 settings for the distributed search step of the assignment.
+    # These values are loaded from environment variables so that credentials
+    # and server details are never hardcoded into the repository.
+    EC2_HOST = os.getenv("EC2_HOST", "")
+    EC2_PORT = int(os.getenv("EC2_PORT", "22"))
+    EC2_USERNAME = os.getenv("EC2_USERNAME", "")
+    EC2_KEY_PATH = os.getenv("EC2_KEY_PATH", "")
+    EC2_WIKI_SCRIPT_PATH = os.getenv("EC2_WIKI_SCRIPT_PATH", "")

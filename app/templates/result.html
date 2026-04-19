@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="card">
+            <h1>Search Result</h1>
+
+            {% if search_term %}
+                <p><strong>Search term:</strong> {{ search_term }}</p>
+            {% else %}
+                <p><strong>Search term:</strong> No term was supplied.</p>
+            {% endif %}
+
+            <div class="result-box">
+                <p class="result-message">{{ message }}</p>
+            </div>
+
+            <p class="secondary-text">
+                This starter page is ready for future MySQL caching and Paramiko
+                remote execution integration.
+            </p>
+
+            <div class="actions">
+                <a href="{{ url_for('index') }}" class="button-link">Search Again</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

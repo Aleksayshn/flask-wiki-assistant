@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="card">
+            <h1>Distributed Wiki Assistant</h1>
+            <p class="lead">
+                Enter a topic to begin a future distributed Wikipedia search.
+            </p>
+
+            <form action="{{ url_for('search') }}" method="post" class="search-form">
+                <label for="search_term">Search Term</label>
+                <input
+                    type="text"
+                    id="search_term"
+                    name="search_term"
+                    placeholder="e.g. Cloud Computing"
+                    required
+                >
+                <button type="submit">Search</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

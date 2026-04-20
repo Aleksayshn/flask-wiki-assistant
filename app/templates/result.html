@@ -11,10 +11,11 @@
         <section class="card">
             <h1>Search Result</h1>
             <p class="secondary-text">
-                This page shows the information returned by the remote
-                Wikipedia script running on the EC2 instance.
+                This page shows the result returned either from the local
+                MySQL cache or from the remote Wikipedia lookup service.
             </p>
             <p><strong>Your search term:</strong> {{ search_term }}</p>
+            <p><strong>Result source:</strong> {{ source }}</p>
 
             <div class="result-box">
                 {% if wiki_result.success %}
@@ -33,10 +34,13 @@
 
                     <p><strong>Summary:</strong> {{ wiki_result.summary or "No summary returned." }}</p>
                 {% else %}
-                    <p class="result-message">Remote lookup failed.</p>
+                    <p class="result-message">Lookup failed.</p>
                     <p class="secondary-text">
-                        {{ wiki_result.error or "The EC2 instance did not return a valid response." }}
+                        {{ wiki_result.error or "The application could not retrieve a valid response." }}
                     </p>
+                    {% if wiki_result.raw_output %}
+                        <p><strong>Raw output:</strong> {{ wiki_result.raw_output }}</p>
+                    {% endif %}
                 {% endif %}
             </div>
 

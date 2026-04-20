@@ -31,11 +31,15 @@ class Config:
     FLASK_PORT = int(os.getenv("FLASK_PORT", "8888"))
 
     MYSQL_CACHE_ENABLED = _to_bool(os.getenv("MYSQL_CACHE_ENABLED"), default=False)
-    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-    MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
-    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "wiki_cache")
-    MYSQL_USER = os.getenv("MYSQL_USER", "wiki_user")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "wiki_password")
+
+    # Database settings for the MySQL cache running on the second Ubuntu VM.
+    # They are loaded from the environment so the app can be moved between
+    # machines without changing the source code.
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = int(os.getenv("DB_PORT", "7888"))
+    DB_NAME = os.getenv("DB_NAME", "wiki_cache")
+    DB_USER = os.getenv("DB_USER", "wiki_user")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "wiki_password")
 
     REMOTE_EXECUTION_ENABLED = _to_bool(
         os.getenv("REMOTE_EXECUTION_ENABLED"), default=False

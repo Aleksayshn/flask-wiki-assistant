@@ -1,22 +1,30 @@
 """
-Database helper layer.
+MySQL cache layer for the distributed Flask application.
 
-This module contains a lightweight repository class that marks the place
-where MySQL-based caching can be implemented in future assignment stages.
+This module is responsible for storing and retrieving Wikipedia results so
+the application does not need to contact the remote EC2 instance for every
+search. The code is defensive so the Flask app can continue to work even if
+the database container is temporarily unavailable.
 """
 
 from __future__ import annotations
 
-from typing import Optional
+import logging
+from typing import Dict, Optional
+
+import mysql.connector
+from mysql.connector import Error
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class CacheRepository:
     """
-    Placeholder repository for storing cached wiki search results in MySQL.
+    Repository class used to access the MySQL cache table.
 
-    The class keeps connection settings in one place so the application can
-    be extended later with a real database client such as `mysql-connector`
-    or `PyMySQL`.
+    Keeping database logic in one class makes the Flask route easier to read
+    and keeps the assignment structure modular.
     """
 
     def __init__(
@@ -35,34 +43,153 @@ class CacheRepository:
         self.user = user
         self.password = password
 
-    def get_cached_result(self, search_term: str) -> Optional[str]:
+    def get_db_connection(self):
         """
-        Return a cached result if one exists.
+        Create and return a MySQL connection.
 
-        For the starter project this method returns `None`. In a later
-        version it can query a MySQL table and return a stored summary.
+        A separate helper function keeps connection details in one place and
+        makes exception handling easier to manage.
+        """
+        if not self.enabled:
+            return None
+
+        return mysql.connector.connect(
+            host=self.host,
+            port=self.port,
+            database=self.database,
+            user=self.user,
+            password=self.password,
+            connection_timeout=5,
+        )
+
+    def init_cache_table_if_needed(self) -> bool:
+        """
+        Ensure the cache table exists before the application uses it.
+
+        If the database is unavailable, the error is logged and the Flask app
+        continues to run without caching.
+        """
+        if not self.enabled:
+            return False
+
+        connection = None
+        cursor = None
+
+        try:
+            connection = self.get_db_connection()
+            if connection is None:
+                return
+
+            cursor = connection.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS wiki_search_cache (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    search_term VARCHAR(255) NOT NULL UNIQUE,
+                    title VARCHAR(255) NOT NULL,
+                    url VARCHAR(512) NOT NULL,
+                    summary TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            connection.commit()
+            return True
+        except Error as error:
+            LOGGER.warning("Could not initialise cache table: %s", error)
+            return False
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if connection is not None and connection.is_connected():
+                connection.close()
+
+    def get_cached_result(self, search_term: str) -> Optional[Dict[str, str]]:
+        """
+        Return a cached result dictionary if the search term already exists.
+
+        Returning `None` signals a cache miss or a temporary database issue,
+        allowing the Flask app to fall back to the remote Wikipedia lookup.
         """
         if not self.enabled or not search_term:
             return None
 
-        # Future implementation:
-        # 1. Open a MySQL connection.
-        # 2. Query the cache table by search term.
-        # 3. Return the cached result if found.
-        return None
+        connection = None
+        cursor = None
 
-    def save_cached_result(self, search_term: str, result_text: str) -> None:
+        try:
+            connection = self.get_db_connection()
+            if connection is None:
+                return None
+
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(
+                """
+                SELECT search_term, title, url, summary
+                FROM wiki_search_cache
+                WHERE search_term = %s
+                """,
+                (search_term,),
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                return None
+
+            return {
+                "search_term": row["search_term"],
+                "title": row["title"],
+                "url": row["url"],
+                "summary": row["summary"],
+            }
+        except Error as error:
+            LOGGER.warning("Cache lookup failed for '%s': %s", search_term, error)
+            return None
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if connection is not None and connection.is_connected():
+                connection.close()
+
+    def save_cached_result(
+        self, search_term: str, title: str, url: str, summary: str
+    ) -> bool:
         """
-        Save a result to the cache.
+        Save a successful remote result in the cache.
 
-        This method is kept as a placeholder to show the intended design of
-        the data access layer.
+        `ON DUPLICATE KEY UPDATE` keeps the latest value for a search term
+        while preserving a simple unique-key design.
         """
-        if not self.enabled or not search_term or not result_text:
-            return
+        if not self.enabled or not search_term or not title or not summary:
+            return False
 
-        # Future implementation:
-        # 1. Open a MySQL connection.
-        # 2. Insert or update the cache record.
-        # 3. Commit the transaction.
-        return None
+        connection = None
+        cursor = None
+
+        try:
+            connection = self.get_db_connection()
+            if connection is None:
+                return
+
+            cursor = connection.cursor()
+            cursor.execute(
+                """
+                INSERT INTO wiki_search_cache (search_term, title, url, summary)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    title = VALUES(title),
+                    url = VALUES(url),
+                    summary = VALUES(summary)
+                """,
+                (search_term, title, url, summary),
+            )
+            connection.commit()
+            return True
+        except Error as error:
+            LOGGER.warning("Could not save cache entry for '%s': %s", search_term, error)
+            return False
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if connection is not None and connection.is_connected():
+                connection.close()

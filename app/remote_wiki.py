@@ -15,6 +15,9 @@ from typing import Dict
 import paramiko
 
 
+REMOTE_WIKI_PYTHON = "/home/ubuntu/wiki-service/venv/bin/python"
+
+
 class RemoteWikiService:
     """
     Execute the remote Wikipedia helper script over SSH.
@@ -81,7 +84,11 @@ class RemoteWikiService:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        command = f"python3 {shlex.quote(self.script_path)} {shlex.quote(search_term)}"
+        command = (
+            f"{shlex.quote(REMOTE_WIKI_PYTHON)} "
+            f"{shlex.quote(self.script_path)} "
+            f"{shlex.quote(search_term)}"
+        )
 
         try:
             # Private key authentication is used here instead of a password so

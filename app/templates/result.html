@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="card">
+            <h1>Search Result</h1>
+            <p class="secondary-text">
+                This page shows the result returned either from the local
+                MySQL cache or from the remote Wikipedia lookup service.
+            </p>
+            <p><strong>Your search term:</strong> {{ search_term }}</p>
+            <p><strong>Result source:</strong> {{ source }}</p>
+
+            <div class="result-box">
+                {% if wiki_result.success %}
+                    <p><strong>Title:</strong> {{ wiki_result.title or "No title returned" }}</p>
+
+                    <p>
+                        <strong>URL:</strong>
+                        {% if wiki_result.url and wiki_result.url != "N/A" %}
+                            <a href="{{ wiki_result.url }}" target="_blank" rel="noopener noreferrer">
+                                {{ wiki_result.url }}
+                            </a>
+                        {% else %}
+                            Not available
+                        {% endif %}
+                    </p>
+
+                    <p><strong>Summary:</strong> {{ wiki_result.summary or "No summary returned." }}</p>
+                {% else %}
+                    <p class="result-message">Lookup failed.</p>
+                    <p class="secondary-text">
+                        {{ wiki_result.error or "The application could not retrieve a valid response." }}
+                    </p>
+                    {% if wiki_result.raw_output %}
+                        <p><strong>Raw output:</strong> {{ wiki_result.raw_output }}</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="actions">
+                <a href="{{ url_for('index') }}" class="button-link">Search Again</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
